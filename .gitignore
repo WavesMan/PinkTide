@@ -1,0 +1,56 @@
+# Go 构建与二进制产物
+bin/
+build/
+dist/
+out/
+debug/
+release/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 临时与缓存文件
+tmp/
+.cache/
+*.log
+*.tmp
+*~
+*.swp
+*.swo
+
+# Go 工作区与依赖
+vendor/
+go.work
+go.work.sum
+
+# 环境与本地配置
+.env
+.env.*
+.env.local
+
+# IDE 与编辑器目录
+.idea/
+.vscode/
+.vs/
+.fleet/
+.history/
+
+# 系统平台文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 测试产物与覆盖率
+*.test
+*.out
+coverage/
+*.cover
+coverage.out
+*.coverprofile
+
+# 性能分析与追踪
+*.prof
+*.pprof
+*.trace
+profile.out

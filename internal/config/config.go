@@ -1,0 +1,89 @@
+package config
+
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+)
+
+type Config struct {
+	ListenAddr      string
+	CDNPublicURL    string
+	BiliRoomID      string
+	RefreshInterval time.Duration
+	RequestTimeout  time.Duration
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	IdleTimeout     time.Duration
+}
+
+func Load() (Config, error) {
+	cfg := Config{
+		ListenAddr:      getEnv("PT_LISTEN_ADDR", ":8080"),
+		CDNPublicURL:    getEnv("PT_CDN_PUBLIC_URL", ""),
+		BiliRoomID:      getEnv("PT_BILI_ROOM_ID", ""),
+		RefreshInterval: 10 * time.Minute,
+		RequestTimeout:  5 * time.Second,
+		ReadTimeout:     10 * time.Second,
+		WriteTimeout:    10 * time.Second,
+		IdleTimeout:     60 * time.Second,
+	}
+
+	if v, ok := os.LookupEnv("PT_REFRESH_INTERVAL"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse PT_REFRESH_INTERVAL failed: %w", err)
+		}
+		cfg.RefreshInterval = d
+	}
+
+	if v, ok := os.LookupEnv("PT_REQUEST_TIMEOUT"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse PT_REQUEST_TIMEOUT failed: %w", err)
+		}
+		cfg.RequestTimeout = d
+	}
+
+	if v, ok := os.LookupEnv("PT_READ_TIMEOUT"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse PT_READ_TIMEOUT failed: %w", err)
+		}
+		cfg.ReadTimeout = d
+	}
+
+	if v, ok := os.LookupEnv("PT_WRITE_TIMEOUT"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse PT_WRITE_TIMEOUT failed: %w", err)
+		}
+		cfg.WriteTimeout = d
+	}
+
+	if v, ok := os.LookupEnv("PT_IDLE_TIMEOUT"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse PT_IDLE_TIMEOUT failed: %w", err)
+		}
+		cfg.IdleTimeout = d
+	}
+
+	cfg.CDNPublicURL = strings.TrimSpace(cfg.CDNPublicURL)
+	cfg.CDNPublicURL = strings.TrimRight(cfg.CDNPublicURL, "/")
+	cfg.BiliRoomID = strings.TrimSpace(cfg.BiliRoomID)
+
+	if cfg.CDNPublicURL == "" {
+		return Config{}, fmt.Errorf("PT_CDN_PUBLIC_URL is required")
+	}
+
+	return cfg, nil
+}
+
+func getEnv(key, fallback string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return fallback
+}
