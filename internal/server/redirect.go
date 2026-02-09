@@ -9,7 +9,7 @@ import (
 func redirectHandler(listenAddr string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		target := buildRedirectURL(r, listenAddr)
-		http.Redirect(w, r, target, http.StatusPermanentRedirect)
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
 	})
 }
 

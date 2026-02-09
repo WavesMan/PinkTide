@@ -9,7 +9,8 @@ RUN go mod download
 COPY . .
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/pt-server ./cmd/pt-server
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-X PinkTide/internal/server.BuildVersion=$VERSION" -o /out/pt-server ./cmd/pt-server
 
 ARG DOCKER_REGISTRY=docker.io/library/
 FROM ${DOCKER_REGISTRY}alpine:3.20

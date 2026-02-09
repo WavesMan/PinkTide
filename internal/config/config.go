@@ -13,6 +13,7 @@ type Config struct {
 	CDNPublicURL     string
 	BiliRoomID       string
 	LogLevel         string
+	TLSMode          string
 	TLSCertFile      string
 	TLSKeyFile       string
 	TLSCertDir       string
@@ -31,6 +32,7 @@ func Load() (Config, error) {
 		CDNPublicURL:     getEnv("PT_CDN_PUBLIC_URL", ""),
 		BiliRoomID:       getEnv("PT_BILI_ROOM_ID", ""),
 		LogLevel:         getEnv("PT_LOG_LEVEL", "info"),
+		TLSMode:          getEnv("PT_TLS_MODE", "https"),
 		TLSCertFile:      getEnv("PT_TLS_CERT_FILE", ""),
 		TLSKeyFile:       getEnv("PT_TLS_KEY_FILE", ""),
 		TLSCertDir:       getEnv("PT_TLS_CERT_DIR", "certs"),
@@ -89,6 +91,18 @@ func Load() (Config, error) {
 	cfg.TLSKeyFile = strings.TrimSpace(cfg.TLSKeyFile)
 	cfg.TLSCertDir = strings.TrimSpace(cfg.TLSCertDir)
 	cfg.HTTPRedirectAddr = strings.TrimSpace(cfg.HTTPRedirectAddr)
+	cfg.TLSMode = strings.ToLower(strings.TrimSpace(cfg.TLSMode))
+	if cfg.TLSMode == "" {
+		cfg.TLSMode = "https"
+	}
+	switch cfg.TLSMode {
+	case "http", "https", "https-only", "only-https":
+		if cfg.TLSMode == "only-https" {
+			cfg.TLSMode = "https-only"
+		}
+	default:
+		return Config{}, fmt.Errorf("PT_TLS_MODE invalid: %s", cfg.TLSMode)
+	}
 
 	if cfg.CDNPublicURL == "" {
 		return Config{}, fmt.Errorf("PT_CDN_PUBLIC_URL is required")

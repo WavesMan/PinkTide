@@ -45,3 +45,4 @@ jobs:
           build-args: |
             DOCKER_REGISTRY=${{ secrets.DOCKER_REGISTRY || env.DOCKER_REGISTRY || 'docker.io/library/' }}
             GOPROXY=${{ secrets.GOPROXY || env.GOPROXY || '' }}
+            VERSION=${{ github.ref_name || 'dev' }}

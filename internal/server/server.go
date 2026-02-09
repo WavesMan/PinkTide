@@ -16,6 +16,8 @@ import (
 	"PinkTide/internal/tlsutil"
 )
 
+var BuildVersion = "dev"
+
 // Server 负责路由注册、依赖组织与 HTTP 生命周期管理。
 type Server struct {
 	cfg        config.Config
@@ -51,9 +53,15 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 	fetcher := segment.NewFetcher(originClient)
 
 	mux := http.NewServeMux()
-	certResult, err := tlsutil.EnsureCertificate(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCertDir, cfg.ListenAddr, logger)
-	if err != nil {
-		return nil, err
+	certFile := ""
+	keyFile := ""
+	if cfg.TLSMode != "http" {
+		certResult, err := tlsutil.EnsureCertificate(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCertDir, cfg.ListenAddr, logger)
+		if err != nil {
+			return nil, err
+		}
+		certFile = certResult.CertFile
+		keyFile = certResult.KeyFile
 	}
 	srv := &Server{
 		cfg:        cfg,
@@ -64,8 +72,8 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		segFetcher: fetcher,
 		serveMux:   mux,
 		logger:     logger,
-		certFile:   certResult.CertFile,
-		keyFile:    certResult.KeyFile,
+		certFile:   certFile,
+		keyFile:    keyFile,
 	}
 	srv.registerRoutes()
 	srv.httpServer = &http.Server{
@@ -75,7 +83,7 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,
 	}
-	if cfg.HTTPRedirectAddr != "" {
+	if cfg.TLSMode == "https" && cfg.HTTPRedirectAddr != "" {
 		srv.redirect = &http.Server{
 			Addr:    cfg.HTTPRedirectAddr,
 			Handler: redirectHandler(cfg.ListenAddr),
@@ -90,8 +98,10 @@ func (s *Server) Start(ctx context.Context) error {
 		go s.resolver.Start(ctx)
 	}
 	if s.logger != nil {
-		s.logger.Info("server start", "addr", s.cfg.ListenAddr)
-		s.logger.Info("tls ready", "cert_file", s.certFile, "key_file", s.keyFile)
+		s.logger.Info("server start", "addr", s.cfg.ListenAddr, "tls_mode", s.cfg.TLSMode)
+		if s.cfg.TLSMode != "http" {
+			s.logger.Info("tls ready", "cert_file", s.certFile, "key_file", s.keyFile)
+		}
 	}
 	if s.redirect != nil {
 		go func() {
@@ -105,7 +115,13 @@ func (s *Server) Start(ctx context.Context) error {
 			s.logger.Info("http redirect enabled", "addr", s.redirect.Addr)
 		}
 	}
-	if err := s.httpServer.ListenAndServeTLS(s.certFile, s.keyFile); err != nil {
+	var err error
+	if s.cfg.TLSMode == "http" {
+		err = s.httpServer.ListenAndServe()
+	} else {
+		err = s.httpServer.ListenAndServeTLS(s.certFile, s.keyFile)
+	}
+	if err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}

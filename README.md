@@ -26,6 +26,30 @@ go run ./cmd/pt-server
 https://localhost:8080/live.m3u8?room_id=544853
 ```
 
+## Docker 部署
+
+镜像：wavesman/pinktide
+
+拉取并启动：
+
+```bash
+docker pull wavesman/pinktide:latest
+docker run --rm \
+  -p 8080:8080 \
+  -p 8081:8081 \
+  -v $PWD/certs:/certs \
+  -e PT_CDN_PUBLIC_URL=https://localhost:8080 \
+  -e PT_LOG_LEVEL=info \
+  wavesman/pinktide:latest
+```
+
+常用参数：
+
+- 端口：HTTPS 监听 8080，HTTP 跳转 8081
+- 证书：挂载 /certs 以持久化自签证书或放入本地证书
+- 环境变量：PT_CDN_PUBLIC_URL 必填，其余同上表
+- 关闭 HTTP 跳转：将 PT_HTTP_REDIRECT_ADDR 置空
+
 ## 配置
 
 环境变量：
@@ -36,6 +60,7 @@ https://localhost:8080/live.m3u8?room_id=544853
 | PT_CDN_PUBLIC_URL | CDN 对外域名 | 必填 |
 | PT_BILI_ROOM_ID | 默认直播间 ID | 空 |
 | PT_LOG_LEVEL | 日志级别 | info |
+| PT_TLS_MODE | TLS 模式：http、https、https-only | https |
 | PT_TLS_CERT_FILE | TLS 证书路径 | 空 |
 | PT_TLS_KEY_FILE | TLS 私钥路径 | 空 |
 | PT_TLS_CERT_DIR | TLS 证书目录 | certs |
@@ -73,6 +98,9 @@ https://localhost:8080/live.m3u8?room_id=544853
 - 若证书不存在则自动生成自签证书，默认保存到 PT_TLS_CERT_DIR
 - 访问本地自签证书时需在客户端信任或忽略证书校验
 - PT_CDN_PUBLIC_URL 使用 http 会自动改为 https
+- PT_TLS_MODE=http 启动纯 HTTP
+- PT_TLS_MODE=https 启动 HTTPS 并开启 HTTP 301 跳转
+- PT_TLS_MODE=https-only 仅启动 HTTPS，不开启 HTTP 跳转
 
 ## HTTP 跳转
 

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,8 +10,38 @@ import (
 
 // registerRoutes 统一注册对外路由，便于后续扩展。
 func (s *Server) registerRoutes() {
+	s.serveMux.HandleFunc("/", s.handleRoot)
 	s.serveMux.HandleFunc("/live.m3u8", s.handleM3U8)
 	s.serveMux.HandleFunc("/seg", s.handleSegment)
+}
+
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	s.setCors(w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if r.Method != http.MethodGet {
+		if s.logger != nil {
+			fields := append(
+				[]any{"path", r.URL.Path, "method", r.Method},
+				requestFields(r)...,
+			)
+			s.logger.Warn("method not allowed", fields...)
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	resp := map[string]string{
+		"name":    "PinkTide",
+		"version": BuildVersion,
+		"repo":    "https://github.com/WavesMan/PinkTide",
+		"author":  "WavesMan",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // handleM3U8 根据房间号获取并重写播放列表。
@@ -92,7 +123,7 @@ func (s *Server) handleM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rewritten, err := s.rewriter.Rewrite(string(data), originBase)
+	rewritten, err := s.rewriter.Rewrite(string(data), originBase, r.Host)
 	if err != nil {
 		if s.logger != nil {
 			fields := append(
