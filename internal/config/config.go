@@ -11,6 +11,7 @@ type Config struct {
 	ListenAddr      string
 	CDNPublicURL    string
 	BiliRoomID      string
+	LogLevel        string
 	RefreshInterval time.Duration
 	RequestTimeout  time.Duration
 	ReadTimeout     time.Duration
@@ -23,6 +24,7 @@ func Load() (Config, error) {
 		ListenAddr:      getEnv("PT_LISTEN_ADDR", ":8080"),
 		CDNPublicURL:    getEnv("PT_CDN_PUBLIC_URL", ""),
 		BiliRoomID:      getEnv("PT_BILI_ROOM_ID", ""),
+		LogLevel:        getEnv("PT_LOG_LEVEL", "info"),
 		RefreshInterval: 10 * time.Minute,
 		RequestTimeout:  5 * time.Second,
 		ReadTimeout:     10 * time.Second,

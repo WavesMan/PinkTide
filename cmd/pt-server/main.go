@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"PinkTide/internal/config"
+	"PinkTide/internal/logging"
 	"PinkTide/internal/server"
 )
 
@@ -18,7 +19,12 @@ func main() {
 		log.Fatalf("load config failed: %v", err)
 	}
 
-	srv, err := server.New(cfg)
+	logger, err := logging.New(cfg.LogLevel)
+	if err != nil {
+		log.Fatalf("init logger failed: %v", err)
+	}
+
+	srv, err := server.New(cfg, logger)
 	if err != nil {
 		log.Fatalf("init server failed: %v", err)
 	}

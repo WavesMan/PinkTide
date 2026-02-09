@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"PinkTide/internal/bili"
@@ -23,9 +24,10 @@ type Server struct {
 	resolver   *stream.Resolver
 	segFetcher *segment.Fetcher
 	serveMux   *http.ServeMux
+	logger     *slog.Logger
 }
 
-func New(cfg config.Config) (*Server, error) {
+func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 	headers := map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 		"Referer":    "https://live.bilibili.com/",
@@ -38,7 +40,7 @@ func New(cfg config.Config) (*Server, error) {
 	biliClient := bili.NewClient(originClient)
 	var resolver *stream.Resolver
 	if cfg.BiliRoomID != "" {
-		resolver = stream.NewResolver(biliClient, cfg.BiliRoomID, cfg.RefreshInterval)
+		resolver = stream.NewResolver(biliClient, cfg.BiliRoomID, cfg.RefreshInterval, logger)
 	}
 	fetcher := segment.NewFetcher(originClient)
 
@@ -51,6 +53,7 @@ func New(cfg config.Config) (*Server, error) {
 		resolver:   resolver,
 		segFetcher: fetcher,
 		serveMux:   mux,
+		logger:     logger,
 	}
 	srv.registerRoutes()
 	srv.httpServer = &http.Server{
@@ -67,6 +70,9 @@ func (s *Server) Start(ctx context.Context) error {
 	if s.resolver != nil {
 		go s.resolver.Start(ctx)
 	}
+	if s.logger != nil {
+		s.logger.Info("server start", "addr", s.cfg.ListenAddr)
+	}
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
@@ -79,6 +85,9 @@ func (s *Server) Start(ctx context.Context) error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	if s.httpServer == nil {
 		return nil
+	}
+	if s.logger != nil {
+		s.logger.Info("server shutdown")
 	}
 	return s.httpServer.Shutdown(ctx)
 }
