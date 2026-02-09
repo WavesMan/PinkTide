@@ -7,10 +7,12 @@ import (
 	"strings"
 )
 
+// Rewriter 将原始 M3U8 中的切片地址改写为 CDN 可回源地址。
 type Rewriter struct {
 	cdnPublicURL string
 }
 
+// New 校验并归一化 CDN 域名，空值时返回错误。
 func New(cdnPublicURL string) (*Rewriter, error) {
 	cdnPublicURL = strings.TrimSpace(cdnPublicURL)
 	cdnPublicURL = strings.TrimRight(cdnPublicURL, "/")
@@ -20,6 +22,7 @@ func New(cdnPublicURL string) (*Rewriter, error) {
 	return &Rewriter{cdnPublicURL: cdnPublicURL}, nil
 }
 
+// Rewrite 保留原有换行风格并重写切片 URL，解析失败返回错误。
 func (r *Rewriter) Rewrite(content string, originBase string) (string, error) {
 	if originBase == "" {
 		return "", fmt.Errorf("origin base is empty")
@@ -47,6 +50,7 @@ func (r *Rewriter) Rewrite(content string, originBase string) (string, error) {
 	return strings.Join(lines, newline), nil
 }
 
+// resolveURL 将相对切片地址补齐为可回源的绝对地址。
 func resolveURL(baseURL string, ref string) (string, error) {
 	u, err := url.Parse(ref)
 	if err != nil {

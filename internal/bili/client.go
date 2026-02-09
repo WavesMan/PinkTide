@@ -9,14 +9,17 @@ import (
 	"PinkTide/internal/origin"
 )
 
+// Client 负责调用 B 站直播 API 获取可用流地址。
 type Client struct {
 	originClient *origin.Client
 }
 
+// NewClient 注入回源客户端用于复用超时与请求头。
 func NewClient(originClient *origin.Client) *Client {
 	return &Client{originClient: originClient}
 }
 
+// FetchPlayURL 根据房间号获取可播放 URL，失败返回错误。
 func (c *Client) FetchPlayURL(ctx context.Context, roomID string) (string, error) {
 	if roomID == "" {
 		return "", fmt.Errorf("room id is empty")
@@ -65,6 +68,7 @@ func (c *Client) FetchPlayURL(ctx context.Context, roomID string) (string, error
 	return "", fmt.Errorf("play url not found")
 }
 
+// apiResponse 对齐 B 站 API 返回结构，仅保留必要字段。
 type apiResponse struct {
 	Code int `json:"code"`
 	Data struct {

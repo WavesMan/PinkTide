@@ -13,6 +13,7 @@ import (
 	"PinkTide/internal/server"
 )
 
+// main 负责加载配置与日志并启动服务，同时处理优雅退出。
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

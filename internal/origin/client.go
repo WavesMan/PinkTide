@@ -8,11 +8,13 @@ import (
 	"time"
 )
 
+// Client 封装回源请求，统一超时与头部伪装策略。
 type Client struct {
 	httpClient *http.Client
 	headers    http.Header
 }
 
+// NewClient 创建回源客户端，timeout 控制整体请求超时。
 func NewClient(timeout time.Duration, headers map[string]string) *Client {
 	hdr := make(http.Header)
 	for k, v := range headers {
@@ -25,6 +27,7 @@ func NewClient(timeout time.Duration, headers map[string]string) *Client {
 	}
 }
 
+// Get 执行回源请求并返回响应体与状态码，请求失败返回错误。
 func (c *Client) Get(ctx context.Context, target string) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {

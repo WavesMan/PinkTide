@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// New 创建结构化日志实例，level 无效时返回错误。
 func New(level string) (*slog.Logger, error) {
 	lvl, err := parseLevel(level)
 	if err != nil {
@@ -16,6 +17,7 @@ func New(level string) (*slog.Logger, error) {
 	return slog.New(handler), nil
 }
 
+// parseLevel 将字符串级别映射为 slog 等级，未知值返回错误。
 func parseLevel(level string) (slog.Level, error) {
 	switch strings.ToLower(strings.TrimSpace(level)) {
 	case "", "info":

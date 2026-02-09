@@ -7,11 +7,13 @@ import (
 	"net/http"
 )
 
+// registerRoutes 统一注册对外路由，便于后续扩展。
 func (s *Server) registerRoutes() {
 	s.serveMux.HandleFunc("/live.m3u8", s.handleM3U8)
 	s.serveMux.HandleFunc("/seg", s.handleSegment)
 }
 
+// handleM3U8 根据房间号获取并重写播放列表。
 func (s *Server) handleM3U8(w http.ResponseWriter, r *http.Request) {
 	s.setCors(w)
 	if r.Method == http.MethodOptions {
@@ -115,6 +117,7 @@ func (s *Server) handleM3U8(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(rewritten))
 }
 
+// handleSegment 拉取切片并返回，便于 CDN 长缓存。
 func (s *Server) handleSegment(w http.ResponseWriter, r *http.Request) {
 	s.setCors(w)
 	if r.Method == http.MethodOptions {
@@ -191,12 +194,14 @@ func (s *Server) handleSegment(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
+// setCors 统一跨域响应头，避免 CDN 命中时缺失。
 func (s *Server) setCors(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 }
 
+// requestFields 采集回源链路相关字段用于日志分析。
 func requestFields(r *http.Request) []any {
 	remoteIP := r.RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
@@ -218,6 +223,7 @@ func requestFields(r *http.Request) []any {
 	return fields
 }
 
+// appendField 仅在字段非空时写入日志键值对。
 func appendField(fields []any, key, value string) []any {
 	if value == "" {
 		return fields

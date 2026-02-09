@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Config 统一承载运行期配置，来源于环境变量并完成归一化。
 type Config struct {
 	ListenAddr      string
 	CDNPublicURL    string
@@ -19,6 +20,7 @@ type Config struct {
 	IdleTimeout     time.Duration
 }
 
+// Load 加载并校验配置，缺失必填项或格式错误时返回错误。
 func Load() (Config, error) {
 	cfg := Config{
 		ListenAddr:      getEnv("PT_LISTEN_ADDR", ":8080"),
@@ -83,6 +85,7 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// getEnv 读取环境变量，未设置时回退默认值。
 func getEnv(key, fallback string) string {
 	if v, ok := os.LookupEnv(key); ok {
 		return v
