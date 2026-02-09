@@ -28,6 +28,8 @@ go.work.sum
 .env
 .env.*
 .env.local
+certs/
+*.pem
 
 # IDE 与编辑器目录
 .idea/

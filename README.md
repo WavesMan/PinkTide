@@ -15,7 +15,7 @@
 ### 启动
 
 ```bash
-PT_CDN_PUBLIC_URL=http://localhost:8080 \
+PT_CDN_PUBLIC_URL=https://localhost:8080 \
 PT_LOG_LEVEL=info \
 go run ./cmd/pt-server
 ```
@@ -23,7 +23,7 @@ go run ./cmd/pt-server
 ### 访问
 
 ```text
-http://localhost:8080/live.m3u8?room_id=544853
+https://localhost:8080/live.m3u8?room_id=544853
 ```
 
 ## 配置
@@ -36,6 +36,10 @@ http://localhost:8080/live.m3u8?room_id=544853
 | PT_CDN_PUBLIC_URL | CDN 对外域名 | 必填 |
 | PT_BILI_ROOM_ID | 默认直播间 ID | 空 |
 | PT_LOG_LEVEL | 日志级别 | info |
+| PT_TLS_CERT_FILE | TLS 证书路径 | 空 |
+| PT_TLS_KEY_FILE | TLS 私钥路径 | 空 |
+| PT_TLS_CERT_DIR | TLS 证书目录 | certs |
+| PT_HTTP_REDIRECT_ADDR | HTTP 跳转监听地址 | :8081 |
 | PT_REFRESH_INTERVAL | 默认房间刷新间隔 | 10m |
 | PT_REQUEST_TIMEOUT | 回源请求超时 | 5s |
 | PT_READ_TIMEOUT | 读取超时 | 10s |
@@ -62,6 +66,18 @@ http://localhost:8080/live.m3u8?room_id=544853
 
 - /seg 路径保持参数不忽略，缓存 365 天
 - .m3u8 后缀短缓存 1 秒
+
+## TLS
+
+- 启动时优先读取 PT_TLS_CERT_FILE 与 PT_TLS_KEY_FILE
+- 若证书不存在则自动生成自签证书，默认保存到 PT_TLS_CERT_DIR
+- 访问本地自签证书时需在客户端信任或忽略证书校验
+- PT_CDN_PUBLIC_URL 使用 http 会自动改为 https
+
+## HTTP 跳转
+
+- 启动 HTTPS 时默认开启 HTTP 到 HTTPS 的 308 跳转
+- 跳转监听地址由 PT_HTTP_REDIRECT_ADDR 控制，留空可关闭
 
 ## 日志
 

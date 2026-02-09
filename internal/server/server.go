@@ -13,6 +13,7 @@ import (
 	"PinkTide/internal/rewriter"
 	"PinkTide/internal/segment"
 	"PinkTide/internal/stream"
+	"PinkTide/internal/tlsutil"
 )
 
 // Server 负责路由注册、依赖组织与 HTTP 生命周期管理。
@@ -26,6 +27,9 @@ type Server struct {
 	segFetcher *segment.Fetcher
 	serveMux   *http.ServeMux
 	logger     *slog.Logger
+	certFile   string
+	keyFile    string
+	redirect   *http.Server
 }
 
 // New 按配置构建服务依赖，必要参数无效时返回错误。
@@ -47,6 +51,10 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 	fetcher := segment.NewFetcher(originClient)
 
 	mux := http.NewServeMux()
+	certResult, err := tlsutil.EnsureCertificate(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCertDir, cfg.ListenAddr, logger)
+	if err != nil {
+		return nil, err
+	}
 	srv := &Server{
 		cfg:        cfg,
 		origin:     originClient,
@@ -56,6 +64,8 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		segFetcher: fetcher,
 		serveMux:   mux,
 		logger:     logger,
+		certFile:   certResult.CertFile,
+		keyFile:    certResult.KeyFile,
 	}
 	srv.registerRoutes()
 	srv.httpServer = &http.Server{
@@ -64,6 +74,12 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,
+	}
+	if cfg.HTTPRedirectAddr != "" {
+		srv.redirect = &http.Server{
+			Addr:    cfg.HTTPRedirectAddr,
+			Handler: redirectHandler(cfg.ListenAddr),
+		}
 	}
 	return srv, nil
 }
@@ -75,8 +91,21 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 	if s.logger != nil {
 		s.logger.Info("server start", "addr", s.cfg.ListenAddr)
+		s.logger.Info("tls ready", "cert_file", s.certFile, "key_file", s.keyFile)
 	}
-	if err := s.httpServer.ListenAndServe(); err != nil {
+	if s.redirect != nil {
+		go func() {
+			if err := s.redirect.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				if s.logger != nil {
+					s.logger.Error("redirect server failed", "error", err)
+				}
+			}
+		}()
+		if s.logger != nil {
+			s.logger.Info("http redirect enabled", "addr", s.redirect.Addr)
+		}
+	}
+	if err := s.httpServer.ListenAndServeTLS(s.certFile, s.keyFile); err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
@@ -92,6 +121,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if s.logger != nil {
 		s.logger.Info("server shutdown")
+	}
+	if s.redirect != nil {
+		_ = s.redirect.Shutdown(ctx)
 	}
 	return s.httpServer.Shutdown(ctx)
 }

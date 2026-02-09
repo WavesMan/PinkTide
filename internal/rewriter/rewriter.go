@@ -16,6 +16,9 @@ type Rewriter struct {
 func New(cdnPublicURL string) (*Rewriter, error) {
 	cdnPublicURL = strings.TrimSpace(cdnPublicURL)
 	cdnPublicURL = strings.TrimRight(cdnPublicURL, "/")
+	if strings.HasPrefix(strings.ToLower(cdnPublicURL), "http://") {
+		cdnPublicURL = "https://" + strings.TrimPrefix(cdnPublicURL, "http://")
+	}
 	if cdnPublicURL == "" {
 		return nil, fmt.Errorf("cdn public url is empty")
 	}
