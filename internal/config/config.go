@@ -27,6 +27,9 @@ type Config struct {
 
 // Load 加载并校验配置，缺失必填项或格式错误时返回错误。
 func Load() (Config, error) {
+	if err := loadDotEnv(".env"); err != nil {
+		return Config{}, err
+	}
 	cfg := Config{
 		ListenAddr:       getEnv("PT_LISTEN_ADDR", ":8080"),
 		CDNPublicURL:     getEnv("PT_CDN_PUBLIC_URL", ""),
@@ -109,6 +112,39 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func loadDotEnv(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("load %s failed: %w", path, err)
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		if key == "" {
+			continue
+		}
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		value := strings.TrimSpace(parts[1])
+		if err := os.Setenv(key, value); err != nil {
+			return fmt.Errorf("set %s failed: %w", key, err)
+		}
+	}
+	return nil
 }
 
 // getEnv 读取环境变量，未设置时回退默认值。

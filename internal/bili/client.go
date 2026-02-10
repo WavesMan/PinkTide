@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"PinkTide/internal/origin"
 )
@@ -68,6 +69,49 @@ func (c *Client) FetchPlayURL(ctx context.Context, roomID string) (string, error
 	return "", fmt.Errorf("play url not found")
 }
 
+func (c *Client) FetchRoomStatus(ctx context.Context, roomID string) (RoomStatus, error) {
+	if roomID == "" {
+		return RoomStatus{}, fmt.Errorf("room id is empty")
+	}
+
+	apiURL := fmt.Sprintf(
+		"https://api.live.bilibili.com/room/v1/Room/room_init?id=%s",
+		url.QueryEscape(roomID),
+	)
+
+	data, status, err := c.originClient.Get(ctx, apiURL)
+	if err != nil {
+		return RoomStatus{}, err
+	}
+	if status != 200 {
+		return RoomStatus{}, fmt.Errorf("api status %d", status)
+	}
+
+	var result roomInitResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		return RoomStatus{}, fmt.Errorf("decode response failed: %w", err)
+	}
+	if result.Code != 0 {
+		msg := strings.TrimSpace(result.Message)
+		if msg == "" {
+			msg = strings.TrimSpace(result.Msg)
+		}
+		if msg == "" {
+			msg = "api error"
+		}
+		return RoomStatus{}, fmt.Errorf("%s", msg)
+	}
+
+	return RoomStatus{
+		RoomID:     result.Data.RoomID,
+		ShortID:    result.Data.ShortID,
+		UID:        result.Data.UID,
+		LiveStatus: result.Data.LiveStatus,
+		IsHidden:   result.Data.IsHidden,
+		IsLocked:   result.Data.IsLocked,
+	}, nil
+}
+
 // apiResponse 对齐 B 站 API 返回结构，仅保留必要字段。
 type apiResponse struct {
 	Code int `json:"code"`
@@ -91,4 +135,27 @@ type apiResponse struct {
 			URL string `json:"url"`
 		} `json:"durl"`
 	} `json:"data"`
+}
+
+type roomInitResponse struct {
+	Code    int    `json:"code"`
+	Msg     string `json:"msg"`
+	Message string `json:"message"`
+	Data    struct {
+		RoomID     int  `json:"room_id"`
+		ShortID    int  `json:"short_id"`
+		UID        int  `json:"uid"`
+		LiveStatus int  `json:"live_status"`
+		IsHidden   bool `json:"is_hidden"`
+		IsLocked   bool `json:"is_locked"`
+	} `json:"data"`
+}
+
+type RoomStatus struct {
+	RoomID     int
+	ShortID    int
+	UID        int
+	LiveStatus int
+	IsHidden   bool
+	IsLocked   bool
 }

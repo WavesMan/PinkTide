@@ -19,6 +19,7 @@ RUN apk add --no-cache ca-certificates
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=builder /out/pt-server /app/pt-server
+COPY --from=builder /src/ui /app/ui
 RUN mkdir -p /certs && chown -R app:app /certs
 
 USER app
